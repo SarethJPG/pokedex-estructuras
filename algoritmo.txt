@@ -1,0 +1,206 @@
+CONSTANTES:
+    MAX_POKEMON = 1025
+    TAM_NOMBRE = 50
+    TAM_TIPO = 20
+    TAM_LINEA = 256
+
+ESTRUCTURA Pokemon:
+    entero iId
+    cadena cNombre[TAM_NOMBRE]
+    cadena cTipo1[TAM_TIPO]
+    cadena cTipo2[TAM_TIPO]
+    entero iEncontrado (0 = No, 1 = Sí)
+
+ESTRUCTURA tipoNodo (Nodo de la Pila):
+    Pokemon infoPokemon
+    apuntador tipoNodo pSiguiente
+
+TIPO pNodo = apuntador a tipoNodo
+
+VARIABLES GLOBALES:
+    Pokemon arregloPokedex[MAX_POKEMON]
+    entero iTotalPokemones = 0
+    pNodo tope_pila = NULL
+    entero iCapturados = 0
+
+    FUNCION void cargar_desde_csv(cadena ruta)
+    FILE pArchivo = fopen(ruta, "r")
+    SI pArchivo == NULL ENTONCES
+        Imprimir "Error al abrir el archivo"
+        Retornar
+    FIN SI
+    
+    cadena cLinea[TAM_LINEA]
+    Leer primera línea con fgets (saltar encabezado)
+    
+    MIENTRAS fgets(cLinea, TAM_LINEA, pArchivo) != NULL Y iTotalPokemones < MAX_POKEMON HACER
+        // Usar sscanf para separar por comas: id, nombre, tipo1, tipo2
+        Leer datos y guardarlos en arregloPokedex[iTotalPokemones]
+        arregloPokedex[iTotalPokemones].iEncontrado = 0
+        iTotalPokemones = iTotalPokemones + 1
+    FIN MIENTRAS
+    fclose(pArchivo)
+FIN FUNCION
+
+FUNCION entero pila_vacia(pNodo pila)
+    SI pila == NULL ENTONCES Retornar 1
+    SINO Retornar 0
+FIN FUNCION
+
+FUNCION void Push(pNodo *ultimo, Pokemon nuevoPokemon)
+    pNodo nuevoNodo = (pNodo) malloc(sizeof(tipoNodo))
+    nuevoNodo->infoPokemon = nuevoPokemon
+    nuevoNodo->pSiguiente = *ultimo
+    *ultimo = nuevoNodo
+FIN FUNCION
+
+FUNCION void Pop(pNodo *pila, Pokemon *pokemonSacado)
+    pNodo nodoAux = *pila
+    *pokemonSacado = nodoAux->infoPokemon
+    *pila = nodoAux->pSiguiente
+    free(nodoAux)
+FIN FUNCION
+
+FUNCION void imprime_pila(pNodo pila)
+    pNodo aux
+    Imprimir "--- MIS POKÉBOLAS ---"
+    PARA aux = pila HASTA aux != NULL, aux = aux->pSiguiente HACER
+        Imprimir aux->infoPokemon.iId, aux->infoPokemon.cNombre, aux->infoPokemon.cTipo1
+    FIN PARA
+FIN FUNCION
+
+FUNCION void ver_pokedex()
+    entero iMostrados = 0
+    entero iRespuesta
+    cadena cTipo2
+    
+    MIENTRAS iMostrados < iTotalPokemones HACER
+        PARA i = iMostrados HASTA (i < iMostrados + 5 Y i < iTotalPokemones) HACER
+            SI arregloPokedex[i].iEncontrado == 1 ENTONCES
+                Imprimir datos completos (ID, Nombre, Tipos)
+            SINO
+                Imprimir ID, "???", "???"
+            FIN SI
+        FIN PARA
+        iMostrados = iMostrados + 5
+        
+        SI iMostrados < iTotalPokemones ENTONCES
+            Imprimir "¿Mostrar los siguientes 5? (1=Sí, 0=No): "
+            Leer iRespuesta
+            SI iRespuesta == 0 ENTONCES
+                Retornar
+            FIN SI
+        FIN SI
+    FIN MIENTRAS
+    Imprimir "Presione Enter para salir..."
+    Leer un caracter
+FIN FUNCION
+
+FUNCION entero buscar_por_id(entero iIdBuscado)
+    PARA i = 0 HASTA i < iTotalPokemones HACER
+        SI arregloPokedex[i].iId == iIdBuscado ENTONCES Retornar i
+    FIN PARA
+    Retornar -1
+FIN FUNCION
+
+FUNCION entero buscar_por_nombre(cadena cNomBuscado)
+    PARA i = 0 HASTA i < iTotalPokemones HACER
+        SI strcmp(arregloPokedex[i].cNombre, cNomBuscado) == 0 ENTONCES Retornar i
+    FIN PARA
+    Retornar -1
+FIN FUNCION
+
+FUNCION void capturar_pokemon()
+    cadena cNombreAux[50]
+    entero iIndex = -1
+    
+    Imprimir "Ingrese el nombre o ID del Pokémon a capturar: "
+    Leer cNombreAux
+    
+    SI cNombreAux[0] >= '0' Y cNombreAux[0] <= '9' ENTONCES
+        // Es un número, convertir a entero y buscar por ID
+        iIndex = buscar_por_id(atoi(cNombreAux))
+    SINO
+        iIndex = buscar_por_nombre(cNombreAux)
+    FIN SI
+    
+    SI iIndex == -1 ENTONCES
+        Imprimir "Pokémon no encontrado"
+    SINO
+        SI arregloPokedex[iIndex].iEncontrado == 1 ENTONCES
+            Imprimir "Ya tienes este Pokémon"
+        SINO
+            arregloPokedex[iIndex].iEncontrado = 1
+            iCapturados = iCapturados + 1
+            Push(&tope_pila, arregloPokedex[iIndex])
+            Imprimir "¡Pokémon capturado con éxito!"
+        FIN SI
+    FIN SI
+FIN FUNCION
+
+FUNCION void buscar_pokemon()
+    // Similar a capturar_pokemon pero SIN usar Push, solo mostrando los datos.
+    // Si encontrado == 1 muestra todo, si == 0 muestra solo ID y Nombre con "???"
+FIN FUNCION
+
+FUNCION void ordenar_pila()
+    // Extraer todos los elementos de la pila a un arreglo auxiliar
+    // Aplicar QuickSort al arreglo auxiliar por ID
+    // Volver a hacer Push a la pila con los elementos ordenados
+FIN FUNCION
+
+FUNCION void liberar_pokemon()
+    Pokemon pokemonSacado
+    SI pila_vacia(tope_pila) == 1 ENTONCES
+        Imprimir "No has capturado Pokémon"
+    SINO
+        Pop(&tope_pila, &pokemonSacado)
+        // Actualizar su estado en el arreglo global
+        entero iIndex = buscar_por_id(pokemonSacado.iId)
+        arregloPokedex[iIndex].iEncontrado = 0
+        iCapturados = iCapturados - 1
+        Imprimir "Pokémon liberado"
+    FIN SI
+FIN FUNCION
+
+FUNCION entero main()
+    entero iOpcion
+    
+    cargar_desde_csv("pokemones.csv")
+    
+    HACER
+        // Mostrar menú
+        Imprimir "====== POKÉDEX ======"
+        Imprimir "1. Ver Pokédex"
+        Imprimir "2. Capturar Pokémon"
+        Imprimir "3. Ver Pokébolas (Mis Pokémon)"
+        Imprimir "4. Buscar Pokémon"
+        Imprimir "5. Ordenar Pokémon"
+        Imprimir "6. Liberar Pokémon"
+        Imprimir "0. Salir"
+        Leer iOpcion
+        
+        SEGUN iOpcion HACER
+            CASO 1: ver_pokedex()
+            CASO 2: capturar_pokemon()
+            CASO 3: 
+                SI pila_vacia(tope_pila) == 1 ENTONCES
+                    Imprimir "No has capturado Pokémon"
+                SINO
+                    imprime_pila(tope_pila)
+                FIN SI
+            CASO 4: buscar_pokemon()
+            CASO 5: 
+                SI pila_vacia(tope_pila) == 1 ENTONCES
+                    Imprimir "No has capturado Pokémon"
+                SINO
+                    ordenar_pila()
+                FIN SI
+            CASO 6: liberar_pokemon()
+            CASO 0: Imprimir "Saliendo..."
+            DEFAULT: Imprimir "Opción no válida"
+        FIN SEGUN
+    MIENTRAS iOpcion != 0
+    
+    Retornar 0
+FIN FUNCION
