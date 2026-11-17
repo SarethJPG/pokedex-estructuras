@@ -99,7 +99,7 @@ void Pop(pNodo *pila, Pokemon *pokemonSacado) {
 void imprime_pila(pNodo pila) {
     pNodo aux;
     int iContador = 1;
-    printf("\n--- MIS POKEBOLAS (EN ORDEN DE CAPTURA) ---\n");
+    printf("\n--- MIS POKEMONES (EN ORDEN DE CAPTURA) ---\n");
     for (aux = pila; aux != NULL; aux = aux->pSiguiente) {
         printf("%d. ID: %d | Nombre: %s | Tipo 1: %s | Tipo 2: %s\n",
                iContador, aux->infoPokemon.iId, aux->infoPokemon.cNombre,
@@ -265,8 +265,6 @@ void ordenar_pila() {
         printf("No has capturado Pokemones.\n");
         return;
     }
-
-    imprime_pila(tope_pila);
 
     int iCantidad = 0;
     Pokemon arregloTemporal[MAX_POKEMON];
