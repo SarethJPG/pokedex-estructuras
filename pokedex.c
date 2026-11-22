@@ -148,6 +148,9 @@ void ver_pokedex() {
         if (iMostrados < iTotalPokemones) {
             printf("\nMostrar los siguientes 5? (1=Si, 0=No): ");
             scanf("%d", &iRespuesta);
+            // --- LIMPIEZA DE BUFFER ---
+            int c;
+            while ((c = getchar()) != '\n' && c != EOF);
         } else {
             printf("\nHas llegado al final de la Pokedex.\n");
         }
@@ -159,8 +162,14 @@ void capturar_pokemon() {
     int iIndex = -1;
 
     printf("\nIngrese el nombre o ID del Pokemon a capturar: ");
-    scanf("%s", cNombreAux);
+    
+    // Leemos de forma segura con fgets
+    fgets(cNombreAux, TAM_NOMBRE, stdin);
+    
+    // Removemos el salto de línea (\n) que fgets guarda al final
+    cNombreAux[strcspn(cNombreAux, "\n")] = '\0';
 
+    // Validamos si el primer caracter es un número o una letra
     if (cNombreAux[0] >= '0' && cNombreAux[0] <= '9') {
         iIndex = buscar_por_id(atoi(cNombreAux));
     } else {
@@ -186,7 +195,12 @@ void buscar_pokemon() {
     int iIndex = -1;
 
     printf("\nIngrese el nombre o ID del Pokemon a buscar: ");
-    scanf("%s", cNombreAux);
+    
+    // Leemos de forma segura con fgets
+    fgets(cNombreAux, TAM_NOMBRE, stdin);
+    
+    // Removemos el salto de línea
+    cNombreAux[strcspn(cNombreAux, "\n")] = '\0';
 
     if (cNombreAux[0] >= '0' && cNombreAux[0] <= '9') {
         iIndex = buscar_por_id(atoi(cNombreAux));
@@ -227,65 +241,115 @@ void liberar_pokemon() {
     }
 }
 
-
 // ==========================================
-// FUNCIONES DE ORDENAMIENTO (QUICK SORT)
+// FUNCIONES DE ORDENAMIENTO (MERGE SORT)
 // ==========================================
 
-void intercambiar(Pokemon *a, Pokemon *b) {
-    Pokemon temp = *a;
-    *a = *b;
-    *b = temp;
-}
+// Función auxiliar para mezclar los dos subarreglos
+void merge(Pokemon arreglo[], int izq, int mid, int der) {
+    int i, j, k;
+    int n1 = mid - izq + 1;
+    int n2 = der - mid;
 
-int particion(Pokemon arreglo[], int iBajo, int iAlto) {
-    int iPivote = arreglo[iAlto].iId;
-    int i = (iBajo - 1);
+    // Creamos arreglos temporales
+    Pokemon *L = (Pokemon *)malloc(n1 * sizeof(Pokemon));
+    Pokemon *R = (Pokemon *)malloc(n2 * sizeof(Pokemon));
 
-    for (int j = iBajo; j <= iAlto - 1; j++) {
-        if (arreglo[j].iId < iPivote) {
+    // Copiamos los datos a los temporales
+    for (i = 0; i < n1; i++)
+        L[i] = arreglo[izq + i];
+    for (j = 0; j < n2; j++)
+        R[j] = arreglo[mid + 1 + j];
+
+    // Mezclamos los arreglos temporales de vuelta en arreglo[]
+    i = 0; // Índice inicial del primer subarreglo
+    j = 0; // Índice inicial del segundo subarreglo
+    k = izq; // Índice inicial del arreglo mezclado
+
+    while (i < n1 && j < n2) {
+        // Compara por ID
+        if (L[i].iId <= R[j].iId) {
+            arreglo[k] = L[i];
             i++;
-            intercambiar(&arreglo[i], &arreglo[j]);
+        } else {
+            arreglo[k] = R[j];
+            j++;
         }
+        k++;
     }
-    intercambiar(&arreglo[i + 1], &arreglo[iAlto]);
-    return (i + 1);
+
+    // Copiamos los elementos restantes de L, si hay
+    while (i < n1) {
+        arreglo[k] = L[i];
+        i++;
+        k++;
+    }
+
+    // Copiamos los elementos restantes de R, si hay
+    while (j < n2) {
+        arreglo[k] = R[j];
+        j++;
+        k++;
+    }
+
+    // Liberamos la memoria de los temporales
+    free(L);
+    free(R);
 }
 
-void quickSort(Pokemon arreglo[], int iBajo, int iAlto) {
-    if (iBajo < iAlto) {
-        int iPi = particion(arreglo, iBajo, iAlto);
-        quickSort(arreglo, iBajo, iPi - 1);
-        quickSort(arreglo, iPi + 1, iAlto);
+// Función principal de Merge Sort (recursiva)
+void mergeSort(Pokemon arreglo[], int izq, int der) {
+    if (izq < der) {
+        // Encontramos el punto medio
+        int mid = izq + (der - izq) / 2;
+
+        // Ordenamos la primera y segunda mitad
+        mergeSort(arreglo, izq, mid);
+        mergeSort(arreglo, mid + 1, der);
+
+        // Mezclamos las mitades ordenadas
+        merge(arreglo, izq, mid, der);
     }
 }
-
 void ordenar_pila() {
     if (pila_vacia(tope_pila) == 1) {
         printf("No has capturado Pokemones.\n");
         return;
     }
 
+    // 1. Mostramos la pila tal cual (en orden de captura)
+    imprime_pila(tope_pila);
+
+    // 2. Copiamos los datos a un arreglo temporal SIN destruir la pila
     int iCantidad = 0;
     Pokemon arregloTemporal[MAX_POKEMON];
-    Pokemon temp;
-    
-    while (pila_vacia(tope_pila) == 0) {
-        Pop(&tope_pila, &temp);
-        arregloTemporal[iCantidad] = temp;
+    pNodo aux = tope_pila; 
+
+    while (aux != NULL) {
+        arregloTemporal[iCantidad] = aux->infoPokemon;
         iCantidad++;
+        aux = aux->pSiguiente; 
     }
 
-    quickSort(arregloTemporal, 0, iCantidad - 1);
+    // 3. Llamamos a Merge Sort (Ordena el arreglo de menor a mayor)
+    mergeSort(arregloTemporal, 0, iCantidad - 1);
 
-    for (int i = 0; i < iCantidad; i++) {
-        Push(&tope_pila, arregloTemporal[i]);
+    // 4. Mostramos el arreglo ordenado
+    printf("\n--- POKEMONES ORDENADOS POR ID (MERGE SORT) ---\n");
+    
+    // Imprimimos al revés (del mayor al menor) para que el menor quede hasta abajo
+    for (int i = iCantidad - 1; i >= 0; i--) {
+        printf("%d. ID: %d | Nombre: %s | Tipo 1: %s | Tipo 2: %s\n",
+               iCantidad - i, // Solo para que el contador inicie en 1
+               arregloTemporal[i].iId, 
+               arregloTemporal[i].cNombre,
+               arregloTemporal[i].cTipo1, 
+               arregloTemporal[i].cTipo2);
     }
-
-    printf("\n--- POKEMONES ORDENADOS POR ID ---\n");
-    imprime_pila(tope_pila);
+    printf("-------------------------------------------\n");
+    
+    // NOTA: La pila original (tope_pila) permanece intacta.
 }
-
 
 // ==========================================
 // FUNCION PRINCIPAL
@@ -301,12 +365,17 @@ int main() {
         printf("2. Capturar Pokemon\n");
         printf("3. Ver Mis Pokebolas (Pila)\n");
         printf("4. Buscar Pokemon\n");
-        printf("5. Ordenar Pokemones (QuickSort)\n");
+        printf("5. Ordenar Pokemones (mergeSort)\n");
         printf("6. Liberar Pokemon\n");
         printf("0. Salir\n");
         printf("=======================================\n");
         printf("Seleccione una opcion: ");
         scanf("%d", &iOpcion);
+        // --- LIMPIEZA DE BUFFER (Muy importante para fgets) ---
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF);
+        // -----------------------------------------------------
+
 
         switch (iOpcion) {
             case 1: ver_pokedex(); break;
